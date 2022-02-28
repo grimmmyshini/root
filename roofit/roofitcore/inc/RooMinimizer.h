@@ -31,6 +31,7 @@
 #include <RooFit/TestStatistics/RooAbsL.h>
 #include <RooFit/TestStatistics/LikelihoodWrapper.h>
 #include <RooFit/TestStatistics/LikelihoodGradientWrapper.h>
+#include <RooFit/TestStatistics/MinuitFcnAD.h>
 
 #include "RooSentinel.h"
 #include "RooMsgService.h"
@@ -48,7 +49,7 @@ class RooPlot ;
 
 class RooMinimizer : public TObject {
 public:
-  enum class FcnMode { classic, gradient, generic_wrapper };
+  enum class FcnMode { classic, gradient, clad_ad, generic_wrapper };
 
   explicit RooMinimizer(RooAbsReal &function, FcnMode fcnMode = FcnMode::classic);
   explicit RooMinimizer(std::shared_ptr<RooFit::TestStatistics::RooAbsL> likelihood,

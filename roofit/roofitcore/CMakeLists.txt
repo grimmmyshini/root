@@ -236,6 +236,7 @@ ROOT_STANDARD_LIBRARY_PACKAGE(RooFitCore
     RooFitLegacy/RooTreeData.h
     RooFit/TestStatistics/LikelihoodGradientWrapper.h
     RooFit/TestStatistics/LikelihoodWrapper.h
+    RooFit/TestStatistics/MinuitFcnAD.h
     RooFit/TestStatistics/RooAbsL.h
     RooFit/TestStatistics/RooBinnedL.h
     RooFit/TestStatistics/RooSubsidiaryL.h
@@ -460,6 +461,7 @@ ROOT_STANDARD_LIBRARY_PACKAGE(RooFitCore
     src/TestStatistics/LikelihoodWrapper.cxx
     src/TestStatistics/LikelihoodSerial.cxx
     src/TestStatistics/MinuitFcnGrad.cxx
+    src/TestStatistics/MinuitFcnAD.cxx
     src/TestStatistics/RooAbsL.cxx
     src/TestStatistics/RooBinnedL.cxx
     src/TestStatistics/RooSubsidiaryL.cxx

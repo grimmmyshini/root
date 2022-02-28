@@ -113,6 +113,10 @@ RooMinimizer::RooMinimizer(RooAbsReal &function, FcnMode fcnMode) : _fcnMode(fcn
       setMinimizerType("Minuit2");
       break;
    }
+   case FcnMode::clad_ad : {
+      _fcn = new RooFit::TestStatistics::MinuitFcnAD(&function, this, _verbose);
+      break;
+   }
    case FcnMode::generic_wrapper : {
       throw std::logic_error("In RooMinimizer constructor: fcnMode::generic_wrapper cannot be used on a RooAbsReal! "
                              "Please use the TestStatistics::RooAbsL based constructor instead.");
@@ -291,7 +295,6 @@ const ROOT::Fit::Fitter* RooMinimizer::fitter() const
 
 bool RooMinimizer::fitFcn() const {
    bool ret;
-
    switch (_fcnMode) {
    case FcnMode::classic: {
       ret = _theFitter->FitFCN(*dynamic_cast<RooMinimizerFcn *>(_fcn));
@@ -304,6 +307,11 @@ bool RooMinimizer::fitFcn() const {
    case FcnMode::generic_wrapper: {
       ret = _theFitter->FitFCN(*dynamic_cast<RooFit::TestStatistics::MinuitFcnGrad *>(_fcn));
       break;
+   }
+   case FcnMode::clad_ad: {
+     ret = _theFitter->FitFCN(
+         *dynamic_cast<RooFit::TestStatistics::MinuitFcnAD *>(_fcn));
+     break;
    }
    default: {
       throw std::logic_error("In RooMinimizer::fitFcn: _fcnMode has an unsupported value!");

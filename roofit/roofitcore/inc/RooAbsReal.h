@@ -179,6 +179,8 @@ public:
   }
   Bool_t getForceNumInt() const { return _forceNumInt ; }
 
+  virtual void evaluateGradient(double *out) const { }
+
   // Chi^2 fits to histograms
   virtual RooFitResult* chi2FitTo(RooDataHist& data, const RooCmdArg& arg1=RooCmdArg::none(),  const RooCmdArg& arg2=RooCmdArg::none(),
                               const RooCmdArg& arg3=RooCmdArg::none(),  const RooCmdArg& arg4=RooCmdArg::none(), const RooCmdArg& arg5=RooCmdArg::none(),
