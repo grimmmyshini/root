@@ -29,6 +29,8 @@ public:
    // used inside Minuit:
    inline bool returnsInMinuit2ParameterSpace() const override { return false /*gradient->usesMinuitInternalValues()*/; }
 
+   void syncParameterValuesFromMinuitCalls(const double *x) const;
+
    inline void setOptimizeConstOnFunction(RooAbsArg::ConstOpCode opcode, Bool_t doAlsoTrackingOpt) override
    { }
 

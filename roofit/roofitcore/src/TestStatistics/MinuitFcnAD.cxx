@@ -24,9 +24,17 @@ MinuitFcnAD::MinuitFcnAD(RooAbsReal* funct, RooMinimizer *context, bool verbose)
    : RooAbsMinimizerFcn(getParameters(*funct), context, verbose), funct_(funct)
 { }
 
+void MinuitFcnAD::syncParameterValuesFromMinuitCalls(const double *x) const
+{
+  for (std::size_t ix = 0; ix < NDim(); ++ix) {
+     SetPdfParamVal(ix, x[ix]);
+     // how to handle: ((RooRealVar *)_floatParamList->at(ix))->getVal() != x[ix];
+  }
+}
+
 void MinuitFcnAD::Gradient(const double *x, double *grad) const
 {
-  DoEval(x);
+  syncParameterValuesFromMinuitCalls(x);
   funct_->evaluateGradient(grad);
 }
 
