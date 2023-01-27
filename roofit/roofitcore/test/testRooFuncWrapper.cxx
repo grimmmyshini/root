@@ -14,6 +14,21 @@
 
 #include "gtest/gtest.h"
 
+// Function to get the derivative of pdf wrt var.
+double getNumDerivative(const RooAbsReal &pdf, RooRealVar &var, const RooArgSet &normSet)
+{
+   const double eps = 1e-8;
+
+   double orig = var.getVal();
+   var.setVal(orig + eps);
+   double plus = pdf.getVal(normSet);
+   var.setVal(orig - eps);
+   double minus = pdf.getVal(normSet);
+   var.setVal(orig);
+
+   return (plus - minus) / (2 * eps);
+}
+
 TEST(RooFuncWrapper, GaussianNormalized)
 {
    using namespace RooFit;
@@ -47,17 +62,12 @@ TEST(RooFuncWrapper, GaussianNormalized)
    EXPECT_TRUE(paramsMyGauss.hasSameLayout(paramsGauss));
    EXPECT_EQ(paramsMyGauss.size(), paramsGauss.size());
 
-   // Calculate derivatives through RooFit
-   std::unique_ptr<RooDerivative> dGauss_x{gauss.derivative(x, normSet, 1)};
-   std::unique_ptr<RooDerivative> dGauss_mu{gauss.derivative(mu, normSet, 1)};
-   std::unique_ptr<RooDerivative> dGauss_sigma{gauss.derivative(sigma, normSet, 1)};
-
    // Get AD based derivative
    double dMyGauss[3];
    gaussFunc.getGradient(dMyGauss);
 
    // Check if derivatives are equal
-   EXPECT_NEAR(dGauss_x->getVal(), dMyGauss[0], 1e-8);
-   EXPECT_NEAR(dGauss_mu->getVal(), dMyGauss[1], 1e-8);
-   EXPECT_NEAR(dGauss_sigma->getVal(), dMyGauss[2], 1e-8);
+   EXPECT_NEAR(getNumDerivative(gauss, x, normSet), dMyGauss[0], 1e-8);
+   EXPECT_NEAR(getNumDerivative(gauss, mu, normSet), dMyGauss[1], 1e-8);
+   EXPECT_NEAR(getNumDerivative(gauss, sigma, normSet), dMyGauss[2], 1e-8);
 }
