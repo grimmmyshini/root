@@ -1,4 +1,5 @@
 #include <RooRealVar.h>
+#include <RooDerivative.h>
 #include <RooWorkspace.h>
 #include <RooRealProxy.h>
 #include <RooGaussian.h>
@@ -27,8 +28,8 @@ TEST(RooFuncWrapper, GaussianNormalized)
    RooArgSet paramsGauss;
    RooArgSet paramsMyGauss;
 
-   std::string func = "const double arg = x[0] - x[1];"
-                      "const double sig = x[2];"
+   std::string func = "double arg = x[0] - x[1];"
+                      "double sig = x[2];"
                       "double out = std::exp(-0.5 * arg * arg / (sig * sig));"
                       "return 1. / (std::sqrt(TMath::TwoPi()) * sig) * out;";
    RooFuncWrapper<> gaussFunc("myGauss", "myGauss", func, {x, mu, sigma});
@@ -45,4 +46,18 @@ TEST(RooFuncWrapper, GaussianNormalized)
 
    EXPECT_TRUE(paramsMyGauss.hasSameLayout(paramsGauss));
    EXPECT_EQ(paramsMyGauss.size(), paramsGauss.size());
+
+   // Calculate derivatives through RooFit
+   std::unique_ptr<RooDerivative> dGauss_x{gauss.derivative(x, normSet, 1)};
+   std::unique_ptr<RooDerivative> dGauss_mu{gauss.derivative(mu, normSet, 1)};
+   std::unique_ptr<RooDerivative> dGauss_sigma{gauss.derivative(sigma, normSet, 1)};
+
+   // Get AD based derivative
+   double dMyGauss[3];
+   gaussFunc.getGradient(dMyGauss);
+
+   // Check if derivatives are equal
+   EXPECT_NEAR(dGauss_x->getVal(), dMyGauss[0], 1e-8);
+   EXPECT_NEAR(dGauss_mu->getVal(), dMyGauss[1], 1e-8);
+   EXPECT_NEAR(dGauss_sigma->getVal(), dMyGauss[2], 1e-8);
 }
