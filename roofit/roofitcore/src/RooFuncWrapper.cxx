@@ -28,6 +28,8 @@ RooFuncWrapper::RooFuncWrapper(const char *name, const char *title, std::string 
    std::string requestName = funcName + "_req";
    std::string wrapperName = funcName + "_derivativeWrapper";
 
+   gInterpreter->Declare("#pragma cling optimize(2)");
+
    // Declare the function
    std::stringstream bodyWithSigStrm;
    bodyWithSigStrm << "double " << funcName << "(double* params, double* obs) {" << funcBody << "}";
@@ -125,4 +127,22 @@ double RooFuncWrapper::evaluate() const
    updateGradientVarBuffer();
 
    return _func(_gradientVarBuffer.data(), _observables.data());
+}
+
+void RooFuncWrapper::Gradient(const double *x, double *g) const
+{
+   _grad(const_cast<double *>(x), _observables.data(), g);
+}
+
+double RooFuncWrapper::DoEval(const double *x) const
+{
+   return _func(const_cast<double *>(x), _observables.data());
+}
+
+double RooFuncWrapper::DoDerivative(const double *x, unsigned int i) const
+{
+   std::vector<double> out(NDim());
+   _grad(const_cast<double *>(x), _observables.data(), out.data());
+
+   return out[i];
 }

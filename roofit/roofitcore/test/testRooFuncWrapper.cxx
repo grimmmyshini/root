@@ -16,12 +16,15 @@
 #include <RooFuncWrapper.h>
 #include <RooGaussian.h>
 #include <RooHelpers.h>
+#include <RooMinimizer.h>
 #include <RooRealIntegral.h>
 #include <RooRealVar.h>
 
 #include <TROOT.h>
 #include <TSystem.h>
 #include <TMath.h>
+#include <Math/Factory.h>
+#include <Math/Minimizer.h>
 
 #include "gtest/gtest.h"
 
@@ -95,6 +98,9 @@ TEST(RooFuncWrapper, NllWithObservables)
    RooRealVar sigma("sigma", "sigma", 2.0, 0.01, 10);
    RooGaussian gauss{"gauss", "gauss", x, mu, sigma};
 
+   mu.setError(2);
+   sigma.setError(1);
+
    RooArgSet normSet{x};
 
    std::size_t nEvents = 10;
@@ -141,6 +147,26 @@ TEST(RooFuncWrapper, NllWithObservables)
    // Check if derivatives are equal
    EXPECT_NEAR(getNumDerivative(*nllRef, mu, normSet), dMyNLL[0], 1e-6);
    EXPECT_NEAR(getNumDerivative(*nllRef, sigma, normSet), dMyNLL[1], 1e-6);
+
+   // Minimize the RooFuncWrapper Implementation
+   std::unique_ptr<ROOT::Math::Minimizer> myMinimizer{ROOT::Math::Factory::CreateMinimizer("Minuit2")};
+   myMinimizer->SetFunction(nllFunc);
+
+   myMinimizer->SetLimitedVariable(0, "mu", mu.getVal(), mu.getError(), mu.getMin(), mu.getMax());
+   myMinimizer->SetLimitedVariable(1, "sigma", sigma.getVal(), sigma.getError(), sigma.getMin(), sigma.getMax());
+
+   myMinimizer->Minimize();
+
+   // Minimize the reference NLL
+   RooMinimizer RefMinimizer{*nllRef};
+   RefMinimizer.minimize("Minuit2");
+
+   // Compare minimization results
+   EXPECT_NEAR(myMinimizer->X()[0], mu.getVal(), 1e-8);
+   EXPECT_NEAR(myMinimizer->Errors()[0], mu.getError(), 1e-8);
+
+   EXPECT_NEAR(myMinimizer->X()[1], sigma.getVal(), 1e-8);
+   EXPECT_NEAR(myMinimizer->Errors()[1], sigma.getError(), 1e-8);
 }
 
 namespace {
