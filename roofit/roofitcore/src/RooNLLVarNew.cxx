@@ -284,9 +284,9 @@ void RooNLLVarNew::translate(RooFit::Detail::CodeSquashContext &ctx) const
 
       {
          auto scope = ctx.beginLoop(this);
-         ctx.addToCodeBody(resName + " += " + ctx.getResult(_weightVar.arg()) + ";\n");
+         ctx.addToCodeBody(this, resName + " += " + ctx.getResult(_weightVar.arg()) + ";\n");
       }
-      ctx.addToCodeBody(resName + " *= std::log(" + std::to_string(static_cast<double>(_simCount)) + ");\n");
+      ctx.addToCodeBody(this, resName + " *= std::log(" + std::to_string(static_cast<double>(_simCount)) + ");\n");
    }
 
    // Begin loop scope for the observables and weight variable. If the weight
@@ -294,7 +294,7 @@ void RooNLLVarNew::translate(RooFit::Detail::CodeSquashContext &ctx) const
    // brackets of the loop is written at the end of the scopes lifetime.
    {
       auto scope = ctx.beginLoop(this);
-      ctx.addToCodeBody(resName + " -= " + ctx.getResult(_weightVar.arg()) + " * std::log(" +
-                        ctx.getResult(_pdf.arg()) + ");\n");
+      ctx.addToCodeBody(this, resName + " -= " + ctx.getResult(_weightVar.arg()) + " * std::log(" +
+                                 ctx.getResult(_pdf.arg()) + ");\n");
    }
 }

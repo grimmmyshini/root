@@ -67,10 +67,9 @@ public:
    std::string assembleCode(std::string const &returnExpr);
    void addVecObs(const char *key, int idx);
 
-   /// @brief Adds the input string to the squashed code body. If a class implements a translate function that wants to
-   /// emit something to the squashed code body, it must call this function with the code it wants to emit.
-   /// @param in String to add to the squashed code.
-   inline void addToCodeBody(std::string const &in) { _code += in; }
+   void addToCodeBody(RooAbsArg const *klass, std::string const &in);
+
+   void addToCodeBody(std::string const &in, bool isScopeIndep = false);
 
    /// @brief Build the code to call the function with name `funcname`, passing some arguments.
    /// The arguments can either be doubles or some RooFit arguments whose
@@ -107,7 +106,11 @@ public:
 
    std::string makeValidVarName(TString in) const;
 
+   std::string buildArg(RooAbsCollection const &x);
+
 private:
+   bool isScopeIndependent(RooAbsArg const *in) const;
+
    void endLoop(LoopScope const &scope);
 
    void addResult(TNamed const *key, std::string const &value);
@@ -119,8 +122,6 @@ private:
    }
 
    std::string buildArg(std::string const &x) { return x; }
-
-   std::string buildArg(RooAbsCollection const &x);
 
    std::string buildArg(RooAbsArg const &arg) { return getResult(arg); }
 
