@@ -28,6 +28,9 @@
 #include "Minuit2/MnParabolaPoint.h"
 #include "Minuit2/MnPrint.h"
 
+#include <iostream>
+#include <chrono>
+
 namespace ROOT {
 
 namespace Minuit2 {
@@ -99,16 +102,6 @@ FunctionMinimum ModularFunctionMinimizer::Minimize(const FCNGradientBase &fcn, c
    return Minimize(fcn, st, strategy, maxfcn, toler);
 }
 
-FunctionMinimum ModularFunctionMinimizer::Minimize(const FCNBase &fcn, const MnUserParameters &upar,
-                                                   const MnUserCovariance &cov, const MnStrategy &strategy,
-                                                   unsigned int maxfcn, double toler) const
-{
-   // minimize from FCNBase and MnUserParameters and MnUserCovariance objects
-
-   MnUserParameterState st(upar, cov);
-   return Minimize(fcn, st, strategy, maxfcn, toler);
-}
-
 FunctionMinimum ModularFunctionMinimizer::Minimize(const FCNGradientBase &fcn, const MnUserParameters &upar,
                                                    const MnUserCovariance &cov, const MnStrategy &strategy,
                                                    unsigned int maxfcn, double toler) const
@@ -119,6 +112,32 @@ FunctionMinimum ModularFunctionMinimizer::Minimize(const FCNGradientBase &fcn, c
    MnUserParameterState st(upar, cov);
    return Minimize(fcn, st, strategy, maxfcn, toler);
 }
+
+FunctionMinimum ModularFunctionMinimizer::Minimize(const FCNBase &fcn, const MnUserParameters &upar,
+                                                   const MnUserCovariance &cov, const MnStrategy &strategy,
+                                                   unsigned int maxfcn, double toler) const
+{
+   // minimize from FCNBase and MnUserParameters and MnUserCovariance objects
+
+   MnUserParameterState st(upar, cov);
+   return Minimize(fcn, st, strategy, maxfcn, toler);
+}
+
+class TimingScope {
+public:
+   TimingScope(std::string const &label) : _begin{std::chrono::steady_clock::now()}, _label{label} {}
+   ~TimingScope()
+   {
+      std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+      std::cout << "Time difference for " << _label << " = "
+                //<< std::chrono::duration_cast<std::chrono::microseconds>(end - _begin).count() << " [µs]" << std::endl;
+                << std::chrono::duration_cast<std::chrono::milliseconds>(end - _begin).count() << " [ms]" << std::endl;
+   }
+
+private:
+   std::chrono::steady_clock::time_point _begin;
+   const std::string _label;
+};
 
 FunctionMinimum ModularFunctionMinimizer::Minimize(const FCNBase &fcn, const MnUserParameterState &st,
                                                    const MnStrategy &strategy, unsigned int maxfcn, double toler) const
@@ -134,9 +153,14 @@ FunctionMinimum ModularFunctionMinimizer::Minimize(const FCNBase &fcn, const MnU
    unsigned int npar = st.VariableParameters();
    if (maxfcn == 0)
       maxfcn = 200 + 100 * npar + 5 * npar * npar;
+
+   auto ts = std::make_unique<TimingScope>("SeedGenerator");
    MinimumSeed mnseeds = SeedGenerator()(mfcn, gc, st, strategy);
 
-   return Minimize(mfcn, gc, mnseeds, strategy, maxfcn, toler);
+   ts = std::make_unique<TimingScope>("Minimize");
+   auto out = Minimize(mfcn, gc, mnseeds, strategy, maxfcn, toler);
+   ts.reset();
+   return out;
 }
 
 // use Gradient here
@@ -163,7 +187,9 @@ FunctionMinimum ModularFunctionMinimizer::Minimize(const FCNGradientBase &fcn, c
       maxfcn = 200 + 100 * npar + 5 * npar * npar;
 
    // compute seed (will use internally numerical gradient in case calculator does not implement g2 computations)
+   auto ts = std::make_unique<TimingScope>("SeedGenerator");
    MinimumSeed mnseeds = SeedGenerator()(mfcn, *gc, st, strategy);
+   ts = std::make_unique<TimingScope>("Minimize");
    auto minimum = Minimize(mfcn, *gc, mnseeds, strategy, maxfcn, toler);
 
    return minimum;
