@@ -201,31 +201,34 @@ double PiecewiseInterpolation::evaluate() const
 
 void PiecewiseInterpolation::translate(RooFit::Detail::CodeSquashContext &ctx) const
 {
-   unsigned int n = _interpCode.size();
+  unsigned int n = _interpCode.size();
 
-   std::string resName = "total_" + ctx.getTmpVarName();
-   ctx.addToCodeBody(this, "double " + resName + " = " + ctx.getResult(_nominal) + ";\n");
-   std::string code = "";
-   for (std::size_t i = 0; i < n; ++i) {
-      if (_interpCode[i] < 0 || _interpCode[i] > 5) {
-         coutE(InputArguments) << "PiecewiseInterpolation::evaluate ERROR:  " << _paramSet[i].GetName()
-                               << " with unknown interpolation code" << _interpCode[i] << endl;
-      }
-      std::string funcCall;
-      if (_interpCode[i] < 4)
-         funcCall = ctx.buildCall("RooFit::Detail::EvaluateFuncs::flexibleInterp", _interpCode[i], 0,
-                                  _lowSet[i], _highSet[i], 1, _nominal, _paramSet[i], resName);
-      else
-         funcCall = ctx.buildCall("RooFit::Detail::EvaluateFuncs::piecewiseInterpolation", _interpCode[i],
-                                  _lowSet[i], _highSet[i], _nominal, _paramSet[i], resName);
+  std::string resName = "total_" + ctx.getTmpVarName();
+  for (std::size_t i = 0; i < n; ++i) {
+    if (_interpCode[i] < 0 || _interpCode[i] > 5) {
+      coutE(InputArguments) << "PiecewiseInterpolation::evaluate ERROR:  " << _paramSet[i].GetName()
+                            << " with unknown interpolation code" << _interpCode[i] << endl;
+    }
+    if (_interpCode[i] != _interpCode[0]) {
+      coutE(InputArguments) << "FlexibleInterpVar::evaluate ERROR:  Code Squashing AD does not yet support having "
+                               "different interpolation codes for the same class object "
+                            << endl;
+    }
+  }
+  std::string funcCall;
+  if (_interpCode[0] < 4)
+    funcCall = ctx.buildCall("RooFit::Detail::EvaluateFuncs::flexibleInterpEvaluate", _interpCode[0], _paramSet, n, 0,
+                             _lowSet, _highSet, 1, _nominal);
+  else
+    funcCall = ctx.buildCall("RooFit::Detail::EvaluateFuncs::piecewiseInterpolationEvaluate", _interpCode[0], _lowSet,
+                             _highSet, _nominal, _paramSet, n);
+  std::string code = "double " + resName + " = " + funcCall + ";\n";
 
-      code += resName + " = " + funcCall + ";\n";
-   }
-   if (_positiveDefinite)
-      code += resName + " = " + resName + " < 0 ? 0 : " + resName + ";\n";
+  if (_positiveDefinite)
+    code += resName + " = " + resName + " < 0 ? 0 : " + resName + ";\n";
 
-   ctx.addToCodeBody(this, code);
-   ctx.addResult(this, resName);
+  ctx.addToCodeBody(this, code);
+  ctx.addResult(this, resName);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -253,6 +253,16 @@ piecewiseInterpolation(unsigned int code, double low, double high, double nomina
    return sum;
 }
 
+inline double piecewiseInterpolationEvaluate(unsigned int code, double *low, double *high, double nominal, double *params, unsigned int n)
+{
+   double total = nominal;
+   for (std::size_t i = 0; i < n; ++i) {
+      total = RooFit::Detail::EvaluateFuncs::piecewiseInterpolation(code, low[i], high[i], nominal, params[i], total);
+   }
+
+   return total;
+}
+
 inline double logNormalEvaluate(double x, double k, double m0)
 {
    double ln_k = TMath::Abs(TMath::Log(k));
