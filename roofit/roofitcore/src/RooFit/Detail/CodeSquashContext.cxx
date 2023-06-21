@@ -27,15 +27,15 @@ namespace Detail {
 std::string CodeSquashContext::makeValidVarName(TString in) const
 {
 
-   static const int nForbidden = 27;
-   static const char *forbiddenChars[nForbidden] = {"+", "-", "*", "/", "&", "%", "|", "^",  ">",
-                                                    "<", "=", "~", ".", "(", ")", "[", "]",  "!",
-                                                    ",", "$", " ", ":", "'", "#", "@", "\\", "\""};
-   for (int ic = 0; ic < nForbidden; ic++) {
-      in.ReplaceAll(forbiddenChars[ic], "_");
-   }
+   // static const int nForbidden = 27;
+   // static const char *forbiddenChars[nForbidden] = {"+", "-", "*", "/", "&", "%", "|", "^",  ">",
+   //                                                  "<", "=", "~", ".", "(", ")", "[", "]",  "!",
+   //                                                  ",", "$", " ", ":", "'", "#", "@", "\\", "\""};
+   // for (int ic = 0; ic < nForbidden; ic++) {
+   //    in.ReplaceAll(forbiddenChars[ic], "_");
+   // }
 
-   return in.Data();
+   return getTmpVarName();
 }
 
 /// @brief Adds (or overwrites) the string representing the result of a node.
@@ -195,9 +195,9 @@ void CodeSquashContext::endLoop(LoopScope const &scope)
 }
 
 /// @brief Get a unique variable name to be used in the generated code.
-std::string CodeSquashContext::getTmpVarName()
+std::string CodeSquashContext::getTmpVarName() const
 {
-   return "tmpVar" + std::to_string(_tmpVarIdx++);
+   return "t" + std::to_string(_tmpVarIdx++);
 }
 
 /// @brief A function to save an expression that includes/depends on the result of the input node.
@@ -264,6 +264,26 @@ std::string CodeSquashContext::buildArg(RooSpan<const double> arr)
    addToCodeBody(arrDecl, true);
 
    return arrName;
+}
+
+std::string CodeSquashContext::buildArg(std::vector<int> const &arr)
+{
+   unsigned int n = arr.size();
+   std::string arrName = getTmpVarName();
+   std::string arrDecl = "unsigned int " + arrName + "[" + std::to_string(n) + "] = {";
+   for (unsigned int i = 0; i < n; i++) {
+      arrDecl += " " + std::to_string(arr[i]) + ",";
+   }
+   arrDecl.back() = '}';
+   arrDecl += ";\n";
+   addToCodeBody(arrDecl, true);
+
+   return arrName;
+}
+
+std::string CodeSquashContext::buildArg(std::vector<double> const &arr)
+{
+   return buildArg(RooSpan<const double>(arr.data(), arr.size()));
 }
 
 bool CodeSquashContext::isScopeIndependent(RooAbsArg const *in) const

@@ -991,7 +991,9 @@ Int_t RooDataHist::getIndex(const RooAbsCollection& coord, bool fast) const {
 std::string RooDataHist::declWeightArrayForCodeSquash(RooAbsArg const *klass, RooFit::Detail::CodeSquashContext &ctx,
                                                       bool correctForBinSize) const
 {
-   std::string weightName = ctx.makeValidVarName(klass->GetName()) + "_HistWeights";
+   if (_arrSize == 1)
+      return std::to_string(_wgt[0]) + (correctForBinSize ? " / " + std::to_string(_binv[0]) : "");
+   std::string weightName = +"_HW" + ctx.makeValidVarName(klass->GetName());
 
    std::string arrayDecl = "double " + weightName + "[" + std::to_string(_arrSize) + "] = {";
    for (Int_t i = 0; i < _arrSize; i++) {

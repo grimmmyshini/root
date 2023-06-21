@@ -99,13 +99,15 @@ inline double poissonEvaluate(double x, double par)
 }
 
 /// Evaluate the 6-th degree polynomial using Horner's method.
-inline double interpolate6thDegreeHornerPolynomial(double const *p, double x)
+inline double interpolate6thDegreeHornerPolynomial(double const *p, double x, unsigned int offset)
 {
-   return 1. + x * (p[0] + x * (p[1] + x * (p[2] + x * (p[3] + x * (p[4] + x * p[5])))));
+   return 1. + x * (p[0 + offset] +
+                    x * (p[1 + offset] +
+                         x * (p[2 + offset] + x * (p[3 + offset] + x * (p[4 + offset] + x * p[5 + offset])))));
 }
 
-inline double flexibleInterp(unsigned int code, double low, double high, double boundary, double nominal,
-                             double paramVal, double total, double *polCoeff)
+inline double flexibleInterp(unsigned int code, double *polCoeff, double low, double high, double boundary,
+                             double nominal, double paramVal, double total, unsigned int offset)
 {
    if (code == 0) {
       // piece-wise linear
@@ -151,7 +153,39 @@ inline double flexibleInterp(unsigned int code, double low, double high, double 
          return total * std::pow(low / nominal, -paramVal);
       }
 
-      return total * interpolate6thDegreeHornerPolynomial(polCoeff, x);
+      return total * interpolate6thDegreeHornerPolynomial(polCoeff, x, offset);
+   }
+
+   return total;
+}
+
+inline double flexibleInterpEvaluate(unsigned int *codes, double *params, unsigned int n, double *polCoeff, double *low,
+                                     double *high, double boundary, double nominal)
+{
+   double total = nominal;
+   for (std::size_t i = 0; i < n; ++i) {
+      total = RooFit::Detail::EvaluateFuncs::flexibleInterp(codes[i], polCoeff, low[i], high[i], boundary, nominal,
+                                                            params[i], total, 6 * i);
+   }
+
+   if (total <= 0) {
+      total = TMath::Limits<double>::Min();
+   }
+
+   return total;
+}
+
+inline double flexibleInterpEvaluate(unsigned int code, double *params, unsigned int n, double *polCoeff, double *low,
+                                     double *high, double boundary, double nominal)
+{
+   double total = nominal;
+   for (std::size_t i = 0; i < n; ++i) {
+      total = RooFit::Detail::EvaluateFuncs::flexibleInterp(code, polCoeff, low[i], high[i], boundary, nominal,
+                                                            params[i], total, 6 * i);
+   }
+
+   if (total <= 0) {
+      total = TMath::Limits<double>::Min();
    }
 
    return total;

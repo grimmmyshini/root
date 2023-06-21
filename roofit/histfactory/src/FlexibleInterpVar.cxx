@@ -340,8 +340,8 @@ double FlexibleInterpVar::evaluate() const
                                << " with unknown interpolation code" << endl;
       }
       double paramVal = static_cast<const RooAbsReal *>(&_paramList[i])->getVal();
-      total = RooFit::Detail::EvaluateFuncs::flexibleInterp(
-         _interpCode[i], _low[i], _high[i], _interpBoundary, _nominal, paramVal, total, _polCoeff.data() + 6 * i);
+      total = RooFit::Detail::EvaluateFuncs::flexibleInterp(_interpCode[i], _polCoeff.data(), _low[i], _high[i],
+                                                            _interpBoundary, _nominal, paramVal, total, 6 * i);
    }
 
   if(total<=0) {
@@ -354,21 +354,21 @@ double FlexibleInterpVar::evaluate() const
 void FlexibleInterpVar::translate(RooFit::Detail::CodeSquashContext &ctx) const
 {
    unsigned int n = _interpCode.size();
-   std::vector<double> polCoeff(6 * _paramList.size());
-   fillPolCoeff(polCoeff.data(), _low.data(), _high.data(), _interpBoundary, _paramList.size(), _nominal);
-
-   std::string resName = "total_" + ctx.getTmpVarName();
-   ctx.addToCodeBody(this, "double " + resName + " = " + std::to_string(_nominal) + ";\n");
-   std::string code = "";
-   for (std::size_t i = 0; i < n; ++i) {
-      code += resName + " = " +
-              ctx.buildCall("RooFit::Detail::EvaluateFuncs::flexibleInterp", _interpCode[i],
-                            _low[i], _high[i], _interpBoundary,
-                            _nominal, _paramList[i], resName, RooSpan<const double>{polCoeff.data() + 6 * i, 6}) +
-              ";\n";
+   for (unsigned int i = 0; i < n; i++) {
+      if (_interpCode[i] < 0 || _interpCode[i] > 4) {
+         coutE(InputArguments) << "FlexibleInterpVar::evaluate ERROR:  param " << i
+                               << " with unknown interpolation code" << endl;
+      } else if (_interpCode[i] != _interpCode[0]) {
+         coutE(InputArguments) << "FlexibleInterpVar::evaluate ERROR:  Code Squashing AD does not yet support having "
+                                  "different interpolation codes for the same class object "
+                               << endl;
+      }
    }
-   code += resName + " = " + resName + " <= 0 ? TMath::Limits<double>::Min() : " + resName + ";\n";
-   ctx.addToCodeBody(this, code);
+   _polCoeff.resize(6 * _paramList.size());
+   fillPolCoeff(_polCoeff.data(), _low.data(), _high.data(), _interpBoundary, _paramList.size(), _nominal);
+
+   std::string const &resName = ctx.buildCall("RooFit::Detail::EvaluateFuncs::flexibleInterpEvaluate", _interpCode[0],
+                                              _paramList, n, _polCoeff, _low, _high, _interpBoundary, _nominal);
    ctx.addResult(this, resName);
 }
 
@@ -386,9 +386,9 @@ void FlexibleInterpVar::computeBatch(cudaStream_t* /*stream*/, double* output, s
         coutE(InputArguments) << "FlexibleInterpVar::evaluate ERROR:  param " << i << " with unknown interpolation code"
                               << endl;
      }
-     total = RooFit::Detail::EvaluateFuncs::flexibleInterp(_interpCode[i], _low[i],
-                                                                          _high[i], _interpBoundary, _nominal,
-                                                                          dataMap.at(&_paramList[i])[0], total, _polCoeff.data() + 6 * i);
+     total = RooFit::Detail::EvaluateFuncs::flexibleInterp(_interpCode[i], _polCoeff.data(), _low[i], _high[i],
+                                                           _interpBoundary, _nominal, dataMap.at(&_paramList[i])[0],
+                                                           total, 6 * i);
   }
 
   if(total<=0) {

@@ -102,11 +102,13 @@ public:
 
    std::unique_ptr<LoopScope> beginLoop(RooAbsArg const *in);
 
-   std::string getTmpVarName();
+   std::string getTmpVarName() const;
    std::string makeValidVarName(TString in) const;
 
    std::string buildArg(RooAbsCollection const &x);
    std::string buildArg(RooSpan<const double> arr);
+   std::string buildArg(std::vector<double> const &arr);
+   std::string buildArg(std::vector<int> const &arr);
 
 private:
    bool isScopeIndependent(RooAbsArg const *in) const;
@@ -165,7 +167,7 @@ private:
    /// @brief The current number of for loops the started.
    int _loopLevel = 0;
    /// @brief Index to get unique names for temporary variables.
-   int _tmpVarIdx = 0;
+   mutable int _tmpVarIdx = 0;
    /// @brief Keeps track of the position to go back and insert code to.
    int _scopePtr = -1;
    /// @brief Stores code that eventually gets injected into main code body.
