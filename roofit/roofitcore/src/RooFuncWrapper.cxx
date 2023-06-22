@@ -23,6 +23,8 @@
 #include <TROOT.h>
 #include <TSystem.h>
 
+#include <chrono>
+
 RooFuncWrapper::RooFuncWrapper(const char *name, const char *title, std::string const &funcBody,
                                RooArgSet const &paramSet, const RooAbsData *data /*=nullptr*/,
                                RooSimultaneous const *simPdf)
@@ -123,6 +125,7 @@ void RooFuncWrapper::declareAndDiffFunction(std::string funcName, std::string co
 
    gInterpreter->Declare("#pragma cling optimize(2)");
 
+   auto start = std::chrono::high_resolution_clock::now();
    // Declare the function
    std::stringstream bodyWithSigStrm;
    bodyWithSigStrm << "double " << funcName << "(double* params, double const* obs) {\n" << funcBody << "\n}";
@@ -134,7 +137,11 @@ void RooFuncWrapper::declareAndDiffFunction(std::string funcName, std::string co
       throw std::runtime_error(errorMsg.str().c_str());
    }
    _func = reinterpret_cast<Func>(gInterpreter->ProcessLine((funcName + ";").c_str()));
+   std::cout << "Function JIT time: "
+             << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count()
+             << std::endl;
 
+   start = std::chrono::high_resolution_clock::now();
    // Calculate gradient
    gInterpreter->ProcessLine("#include <Math/CladDerivator.h>");
    // disable clang-format for making the following code unreadable.
@@ -153,10 +160,14 @@ void RooFuncWrapper::declareAndDiffFunction(std::string funcName, std::string co
       coutE(InputArguments) << errorMsg.str() << std::endl;
       throw std::runtime_error(errorMsg.str().c_str());
    }
+   std::cout << "clad JIT time: "
+             << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count()
+             << std::endl;
 
    // Build a wrapper over the derivative to hide clad specific types such as 'array_ref'.
    // disable clang-format for making the following code unreadable.
    // clang-format off
+   start = std::chrono::high_resolution_clock::now();
    std::stringstream dWrapperStrm;
    dWrapperStrm << "void " << wrapperName << "(double* params, double const* obs, double* out) {\n"
                    "  clad::array_ref<double> cladOut(out, " << _params.size() << ");\n"
@@ -165,6 +176,9 @@ void RooFuncWrapper::declareAndDiffFunction(std::string funcName, std::string co
    // clang-format on
    gInterpreter->Declare(dWrapperStrm.str().c_str());
    _grad = reinterpret_cast<Grad>(gInterpreter->ProcessLine((wrapperName + ";").c_str()));
+   std::cout << "IR to mach time: "
+             << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count()
+             << std::endl;
 }
 
 void RooFuncWrapper::gradient(double *out) const
