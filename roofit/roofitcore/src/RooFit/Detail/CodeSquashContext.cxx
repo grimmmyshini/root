@@ -254,16 +254,16 @@ std::string CodeSquashContext::buildArg(RooAbsCollection const &in)
 std::string CodeSquashContext::buildArg(RooSpan<const double> arr)
 {
    unsigned int n = arr.size();
-   std::string arrName = getTmpVarName();
-   std::string arrDecl = "double " + arrName + "[" + std::to_string(n) + "] = {";
+   std::string offset = std::to_string(_xlArr.size());
    for (unsigned int i = 0; i < n; i++) {
-      arrDecl += " " + std::to_string(arr[i]) + ",";
+      _xlArr.push_back(arr[i]);
    }
-   arrDecl.back() = '}';
-   arrDecl += ";\n";
+   std::string tempName = getTmpVarName();
+   std::string arrDecl = "double " + tempName + "[" + std::to_string(n) + "];\n";
+   arrDecl += "for (int i = 0; i < " + std::to_string(n) + "; i++) " + tempName + "[i] = xlArr[" + offset + " + i];\n";
    addToCodeBody(arrDecl, true);
 
-   return arrName;
+   return tempName;
 }
 
 std::string CodeSquashContext::buildArg(std::vector<int> const &arr)
